@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timedelta
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -61,7 +63,7 @@ class UserSession(Base):
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     created_at = Column(DateTime, default=func.current_timestamp())
-    expires_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False, default=lambda: func.current_timestamp() + timedelta(hours=24))
     revoked_at = Column(DateTime, nullable=True)
     user_agent = Column(String(255), nullable=True)
     ip = Column(String(45), nullable=True)

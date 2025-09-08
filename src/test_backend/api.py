@@ -1,8 +1,10 @@
 import uuid
+from datetime import datetime, timedelta
 
 from passlib.context import CryptContext
 import uvicorn
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -22,8 +24,23 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 app = FastAPI()
 
 #%% middleware
+
+class DBSessionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        print("MIDDLEWARE: entered dispatch DBSessionMiddleware")
+        db = next(get_db())
+        request.state.db = db
+        try:
+            response = await call_next(request)
+        finally:
+            db.close()
+        return response
+
+app.add_middleware(DBSessionMiddleware)
+
 class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        print("MIDDLEWARE: entered dispatch SessionMiddleware")
         # Extract the session_id from cookies
         session_id = request.cookies.get("session_id")
 
@@ -87,19 +104,23 @@ def generate_random_session_id() -> str:
 
 
 @app.post("/auth/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
+def login(user: UserLogin, db: Session = Depends(get_db), request: Request = None):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Create a new session
     session_id = generate_random_session_id()  # Implement this function to create a random session ID
-    new_session = UserSession(user_id=db_user.id, session_id=session_id)
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host  # This gives you the client's IP address
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+    new_session = UserSession(user_id=db_user.id, session_id=session_id, user_agent=user_agent, ip=ip_address,
+                              expires_at=expires_at)
     db.add(new_session)
     db.commit()
 
     # Set the session_id cookie
-    response = {"message": "Logged in successfully"}
+    response = JSONResponse(content={"message": "Logged in successfully"})
     response.set_cookie(key="session_id", value=session_id, httponly=True, secure=True, samesite="lax")
     return response
 
