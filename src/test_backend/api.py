@@ -47,8 +47,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
             # Here you would typically look up the session in your database
             db: Session = request.state.db
             session = db.query(UserSession).filter(
-                UserSession.session_id == session_id,
-                datetime.now() < UserSession.expires_at).first()
+                UserSession.session_id == session_id).first()
 
             if session is None or session.revoked_at is not None:
                 raise HTTPException(status_code=401, detail="Invalid session")
@@ -122,7 +121,8 @@ def login(user: UserLogin, db: Session = Depends(get_db), request: Request = Non
 
     # Set the session_id cookie
     response = JSONResponse(content={"message": "Logged in successfully"})
-    response.set_cookie(key="session_id", value=session_id, httponly=True, secure=True, samesite="lax")
+    response.set_cookie(key="session_id", value=session_id, httponly=True, secure=True, samesite="lax",
+                        max_age=3600*24)
     return response
 
 
