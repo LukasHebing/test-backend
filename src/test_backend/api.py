@@ -46,7 +46,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if session_id:
             # Here you would typically look up the session in your database
             db: Session = request.state.db
-            session = db.query(UserSession).filter(UserSession.session_id == session_id).first()
+            session = db.query(UserSession).filter(
+                UserSession.session_id == session_id,
+                datetime.now() < UserSession.expires_at).first()
 
             if session is None or session.revoked_at is not None:
                 raise HTTPException(status_code=401, detail="Invalid session")
@@ -112,7 +114,7 @@ def login(user: UserLogin, db: Session = Depends(get_db), request: Request = Non
     session_id = generate_random_session_id()  # Implement this function to create a random session ID
     user_agent = request.headers.get("user-agent")
     ip_address = request.client.host  # This gives you the client's IP address
-    expires_at = datetime.utcnow() + timedelta(hours=24)
+    expires_at = datetime.now() + timedelta(hours=24)
     new_session = UserSession(user_id=db_user.id, session_id=session_id, user_agent=user_agent, ip=ip_address,
                               expires_at=expires_at)
     db.add(new_session)
