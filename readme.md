@@ -673,3 +673,6 @@ Practical takeaway
 - If you choose Elastic Beanstalk for your API, EB will host your app (Python or Docker), provide a public endpoint behind an ALB with autoscaling, put it in your VPC, and wire logging/metrics.
 - You should still provision RDS (PostgreSQL) separately, store credentials in Secrets Manager (or env vars), optionally pull images from ECR if you use Docker, and set up Route 53 for your custom domain.
 - Database migrations are not automatic; add them via platform hooks/.ebextensions or your CI/CD job.
+
+Useful: https://medium.com/creative-technology-concepts-code/python-docker-and-amazon-elastic-beanstalk-7f9a45c2c9db
+-> it seems that beanstalk can directly deploy via the beasnstalk cli :)
