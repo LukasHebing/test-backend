@@ -126,6 +126,16 @@ def login(user: UserLogin, db: Session = Depends(get_db), request: Request = Non
     return response
 
 
+@app.post("/auth/logout")
+def logout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Revoke the session
+    db.query(UserSession).filter(UserSession.user_id == current_user.id).delete()
+    db.commit()
+
+    # Clear the session_id cookie
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie("session_id")
+    return response
 
 if __name__ == "__main__":
     uvicorn.run("src.test_backend.api:app", host="0.0.0.0", port=8000, reload=True)
