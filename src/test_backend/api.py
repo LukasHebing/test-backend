@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from test_backend.db import User, get_db, UserSession
+from test_backend.db import User, get_db, UserSession, init_db
 
 #%% Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -136,6 +136,15 @@ def logout(current_user: User = Depends(get_current_user), db: Session = Depends
     response = JSONResponse(content={"message": "Logged out successfully"})
     response.delete_cookie("session_id")
     return response
+
+
+@app.post('/init_db')
+def initialize_database():
+    try:
+        init_db()
+        return {'message': 'Database initialized successfully.'}, 200
+    except Exception as e:
+        return {'error': str(e)}, 500
 
 if __name__ == "__main__":
     uvicorn.run("src.test_backend.api:app", host="0.0.0.0", port=8000, reload=True)

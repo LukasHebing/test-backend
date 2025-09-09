@@ -106,7 +106,7 @@ def execute_raw_query(query: str):
             return result.fetchall()
         return None
     
-def create_tables():
+def init_db():
     """create the tables from the models. delete all data if tables exist."""
    # Drop all tables
     Base.metadata.drop_all(bind=engine)
