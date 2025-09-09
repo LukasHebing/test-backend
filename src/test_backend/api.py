@@ -36,8 +36,6 @@ class DBSessionMiddleware(BaseHTTPMiddleware):
             db.close()
         return response
 
-app.add_middleware(DBSessionMiddleware)
-
 class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         print("MIDDLEWARE: entered dispatch SessionMiddleware")
@@ -48,7 +46,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if session_id:
             # Here you would typically look up the session in your database
             db: Session = request.state.db
-            session = db.query(UserSession).filter(UserSession.id == session_id).first()
+            session = db.query(UserSession).filter(UserSession.session_id == session_id).first()
 
             if session is None or session.revoked_at is not None:
                 raise HTTPException(status_code=401, detail="Invalid session")
@@ -63,13 +61,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
 # Add middleware to the FastAPI app
 app.add_middleware(SessionMiddleware)
+app.add_middleware(DBSessionMiddleware)  # <- needs to run first, added last
 
 def get_current_user(request: Request):
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return request.state.user
 
-@app.get("/protected-route")
+@app.get("/check-session")
 def protected_route(current_user: User = Depends(get_current_user)):
     return {"message": f"Hello, {current_user.email}!"}
 
